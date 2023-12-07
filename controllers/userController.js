@@ -1,4 +1,6 @@
 import User from "../models/User.js";
+import { uploadPhoto } from "../middleware/uploadPhotoMiddleware.js";
+import { fileRemover } from "../utils/fileRemover.js";
 
 // new user registration
 const registerUser = async (req, res, next) => {
@@ -33,6 +35,7 @@ const registerUser = async (req, res, next) => {
   }
 };
 
+// login functionality
 const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -64,6 +67,7 @@ const loginUser = async (req, res, next) => {
   }
 };
 
+// searching user
 const userProfile = async (req, res, next) => {
   try {
     // searching user
@@ -88,6 +92,7 @@ const userProfile = async (req, res, next) => {
   }
 };
 
+// updating user
 const updateProfile = async (req, res, next) => {
   try {
     //searching user
@@ -105,7 +110,7 @@ const updateProfile = async (req, res, next) => {
     }
     // saving the updated user
     const updatedUser = await user.save();
-    return res.status(200).json({
+    res.status(200).json({
       _id: updatedUser._id,
       avatar: updatedUser.avatar,
       name: updatedUser.name,
@@ -120,4 +125,68 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-export { registerUser, loginUser, userProfile, updateProfile };
+//updating user profile photo
+const updateProfilePhoto = async (req, res, next) => {
+  try {
+    const upload = uploadPhoto.single("profilePhoto");
+
+    upload(req, res, async function (err) {
+      if (err) {
+        const error = new Error(
+          "Unknown error occured while uploading!" + err.message
+        );
+        error.statusCode = 406;
+        next(error);
+      } else {
+        if (req.file) {
+          let filename;
+
+          let updatedUser = await User.findById(req.user._id);
+          filename = updatedUser.avatar;
+          if (filename) {
+            fileRemover(filename);
+          }
+          updatedUser.avatar = req.file.filename;
+          await updatedUser.save();
+          res.status(200).json({
+            _id: updatedUser._id,
+            avatar: updatedUser.avatar,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            password: updatedUser.password,
+            verified: updatedUser.verified,
+            admin: updatedUser.admin,
+            token: await updatedUser.generateJWT(),
+          });
+        } else {
+          let filename;
+          let updatedUser = await User.findById(req.user._id);
+          filename = updatedUser.avatar;
+          updatedUser.avatar = "";
+          await updatedUser.save();
+          fileRemover(filename);
+          res.json({
+            _id: updatedUser._id,
+            avatar: updatedUser.avatar,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            password: updatedUser.password,
+            verified: updatedUser.verified,
+            admin: updatedUser.admin,
+            token: await updatedUser.generateJWT(),
+          });
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  userProfile,
+  updateProfile,
+  updateProfilePhoto,
+};
