@@ -66,6 +66,7 @@ const loginUser = async (req, res, next) => {
 
 const userProfile = async (req, res, next) => {
   try {
+    // searching user
     let user = await User.findById(req.user._id);
     if (user) {
       return res.status(201).json({
@@ -87,4 +88,36 @@ const userProfile = async (req, res, next) => {
   }
 };
 
-export { registerUser, loginUser, userProfile };
+const updateProfile = async (req, res, next) => {
+  try {
+    //searching user
+    let user = await User.findById(req.user._id);
+    if (!user) {
+      throw new Error("User does not exist!");
+    }
+    //updating name, email & body
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    if (req.body.password && req.body.password.length < 6) {
+      throw new Error("Password length must be at least 6 characters!");
+    } else if (req.body.password) {
+      user.password = req.body.password;
+    }
+    // saving the updated user
+    const updatedUser = await user.save();
+    return res.status(200).json({
+      _id: updatedUser._id,
+      avatar: updatedUser.avatar,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      password: updatedUser.password,
+      verified: updatedUser.verified,
+      admin: updatedUser.admin,
+      token: await updatedUser.generateJWT(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { registerUser, loginUser, userProfile, updateProfile };
