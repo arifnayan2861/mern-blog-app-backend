@@ -126,7 +126,7 @@ const updateProfile = async (req, res, next) => {
 };
 
 //updating user profile photo
-const updateProfilePhoto = async (req, res, next) => {
+const updateProfilePicture = async (req, res, next) => {
   try {
     const upload = uploadPhoto.single("profilePhoto");
 
@@ -188,5 +188,5 @@ export {
   loginUser,
   userProfile,
   updateProfile,
-  updateProfilePhoto,
+  updateProfilePicture,
 };
